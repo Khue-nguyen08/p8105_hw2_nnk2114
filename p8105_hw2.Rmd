@@ -9,9 +9,12 @@ library(readxl)
 library(lubridate)
 library(dplyr)
 library(stringr)
+ library(gtsummary)
+library(knitr)
 ```
+## Question 1
 
-
+Import the poll data file 
 ```{r}
 pols_month = 
   read_csv("./fivethirtyeight_datasets/pols-month.csv", na = c ("NA", ".", ""), show_col_types = FALSE ) |>
@@ -28,7 +31,7 @@ pols_month =
   
 ```
 
-Clean the second data set
+Import and clean the second data set
 ```{r}
 snp = 
   read_csv("./fivethirtyeight_datasets/snp.csv", na = c ("NA", ".", ""), show_col_types = FALSE ) |>
@@ -40,34 +43,38 @@ snp =
   select (!day) |>
   relocate(year, month)
 ```
-Tidy the unemployment data
+Import and tidy the unemployment data
 ```{r}
 unemployment = 
   read_csv("./fivethirtyeight_datasets/unemployment.csv", na = c ("NA", ".", ""), show_col_types = FALSE ) |>
     janitor:: clean_names() |>
   pivot_longer( cols = jan: dec,
                 names_to = "month",
-                values_to = "unemeployed" ) |>
+                values_to = "unemployed" ) |>
   mutate (
     month = month.name[match(str_to_sentence(month),month.abb)]) |>
 mutate (month = str_to_lower(month))
 ```
 
 Join the data set 
-Join the datasets by merging snp into pols, and merging unemployment into the result.
-
-Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables
-
 
 ```{r}
 combine_data =
-  left_join(pols_month, snp) |>
-  left_join(unemployment) |>
+  full_join(pols_month, snp) |>
+  full_join(unemployment) |>
   na.omit()
 ```
-The data contained `r combine_data |> nrow()` rows and `r combine_data |> ncol()`columns showing the data from year 2002 to year 2012. 
+
+*Descriptions of the data*
+
+* The first data set included information of the party affliation "gop"_grand old party_republican and "dem"- democrat from `r pols_month|> pull(year) |> min()` to `r pols_month |> pull(year) |> max()`
+* The second data set contained the stock market index closing values in `r snp|> pull(year) |> min()` to `r snp |> pull(year) |> max()`
+* The third data file showed the unemployment data from  January ,`r unemployment|> pull(year) |> min()` to June, `r unemployment|> pull(year) |> max()`.
+
+The final data contained `r combine_data |> nrow()` rows and `r combine_data |> ncol()`columns. This data set includes 787 observations and 11 variables. 
 
 ## Question 2
+
 Importing MrTrashwheel data
 
 ```{r}
@@ -88,6 +95,7 @@ mutate(
 ```
 
 Import and cleaning the Professor Trash Wheel
+
 ```{r}
 prof_df = 
   read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = 2, range = "A2:N653")|>
@@ -112,7 +120,7 @@ gwynnda_df =
   # use the reasonable name
   janitor::clean_names() |>
   select (- x13, - x14) |>
-  drop_na()|>
+  #drop_na()|>
   mutate (
     day = day(date),
     wheel = "gwynnda"
@@ -141,15 +149,19 @@ The total time that the trash was collected for 10 years from `r range(mrtrash_d
 
 * The Gwynnda data has `r gwynnda_df|> nrow()` rows and `r gwynnda_df|> ncol()` columns.
 The joined data set has `r joined_trash |> nrow()` rows and `r joined_trash |> ncol()` columns. Total trash collected was `r sum(gwynnda_df$weight_tons)`.
-Total number of cigarette butts collected by Gwynnda in June 2022 is In June 2022, Gwynnda Trash Wheel collected `r sum(gwynnda_df[["cigarette_butts"]][gwynnda_df[["month"]] == "June" & gwynnda_df[["year"]] == 2022], na.rm = TRUE)` cigarette butts.
+Total number of cigarette butts collected by Gwynnda in June 2022 is In June 2022, Gwynnda Trash Wheel collected `r gwynnda_df |>filter(year == 2022, month == "June") |>summarise(total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE))|>pull(total_cigarette_butts)` cigarette butts.
+
+
+```{r}
+  gwynnda_df |>
+  filter(year == 2022, month == "June") |>
+  summarise(total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE)) |>
+  pull(total_cigarette_butts)
+```
+
 
 ## Question 3
 Importing the zipcode data sets
-
-Same zipcode, different counties.
-Merge by zipcode. drop the rows that do not have matching counties. left join
-inner_join: found something 
-anti_join
 
 ```{r}
 zipcode_df = 
@@ -157,11 +169,11 @@ zipcode_df =
   janitor::clean_names() |> 
  mutate(
     file_date = mdy(file_date),
-    file_date_year = year(file_date),
-    file_date_month = month(file_date),
-    file_date_day = day(file_date)
+    file_year = year(file_date),
+    file_month = month(file_date),
+    file_day = day(file_date)
   ) |> 
-  select(-file_date) |> 
+  select(-file_date, -state_fips, -county_fips) |> 
   relocate(county, zip_code)
 ```
 Importing and tidy the second data set
@@ -190,10 +202,12 @@ zipzori_df =
   mutate(
     county = str_remove(county, " County$")
   ) |>
-  relocate(county, zip_code, year, month, day)
+  relocate(county, zip_code, year, month, day) |>
+  drop_na()
   
 ```
 Joining the two data set
+
 ```{r}
 joined_zillow = 
   full_join(
@@ -203,4 +217,50 @@ joined_zillow =
   arrange(year, month, day)
 ```
 
+Findinng the zipcode that are in the zipcode data but not in the zori data.
+```{r}
+missing_zip = anti_join(zipcode_df, zipzori_df)
+```
+
+*Data description*
+
+* There are otal `r joined_zillow|> ncol()` observations. 
+
+* In the joined dataset, there are `r n_distinct(joined_zillow$zip_code)` unique zipcodes and `r n_distinct (joined_zillow$neighborhood)` unique neighborhoods.
+
+* The zipcode that are  in the zipcode data but not in the zori data are `r format(missing_zip|> pull(zip_code), scientific = FALSE)`. 
+This could be because no price listed for these areas. 
+
+
+
+Checking the drop price
+```{r}
+drop_price_df =
+  joined_zillow|>
+  select( county, neighborhood, zip_code, year, month, price)|>
+  filter(year == c(2020, 2021), month == 1) |> 
+  pivot_wider(
+    names_from = year,
+    values_from = price, 
+    names_prefix = "price_"
+    ) |>
+  mutate (
+    price_drop = price_2020 - price_2021
+  )|>
+   arrange(desc(price_drop))  |> 
+  filter (row_number() <= 10) |> 
+  select(-month)
+
+```
+
+Make a table
+```{r}
+drop_price_df |>
+ slice_head(n = 10) |> 
+  kable(
+    col.names = c("ZIP Code", "County", "Neighborhood", "Price 2020", "Price 2021", "Price Drop"),
+    digits = 0)
+```
+
+*Comment*
 
