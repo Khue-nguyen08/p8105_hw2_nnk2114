@@ -1,0 +1,56 @@
+---
+title: "Data Import"
+output: github_document
+---
+
+```{r setup , include = FALSE}
+library(tidyverse)
+library(readxl)
+library(haven)
+```
+
+Let's import a dataset
+```{r}
+litters_df = 
+  read_csv("data/FAS_litters.csv")
+```
+```{r}
+pup_df = 
+  read_csv (
+    "data/FAS_pups.csv", 
+    skip = 3,
+    na = c ("NA", ".", "")
+  )
+getwd()
+```
+```{r}
+mlb_df =
+   read_excel("data/mlb11.xlsx")
+```
+
+Import LotR word counts
+```{r}
+fortr_df =
+  read_excel("data/LotR_Words.xlsx", range = "B3:D6")
+
+
+```
+Import the PULSE 
+
+```{r}
+pulse_df = 
+  read_sas ("data/public_pulse_data.sas7bdat")
+```
+
+What about data exporting 
+```{r}
+write_csv(pup_df, "pup.csv")
+```
+
+```{r}
+options(tibble.print_min = 3)
+litters_df = 
+  read_csv(".data/FAS_litter.csv", na = c("NA", ".", ""))
+```
+ 
+

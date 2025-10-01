@@ -1,0 +1,204 @@
+---
+title: "p8105_hw2_nnk2114"
+output: github_document
+---
+
+```{r setup , include = FALSE}
+library(tidyverse)
+library(readxl)
+library(lubridate)
+library(dplyr)
+library(stringr)
+```
+
+
+```{r}
+pols_month = 
+  read_csv("./fivethirtyeight_datasets/pols-month.csv", na = c ("NA", ".", ""), show_col_types = FALSE ) |>
+    janitor:: clean_names() |>
+  separate(mon, into = c ("year", "month", "day"), sep = "-") |>
+  mutate (month = month.name[as.integer(month)])|> 
+  mutate (month = str_to_lower(month)) |>
+  mutate (year = as.integer(year)) |>
+  mutate (president = case_when (
+    prez_dem == 1 ~ "dem",
+    prez_dem == 0 ~ "gop"
+  )) |>
+  select ( !c (prez_dem, prez_gop, day))
+  
+```
+
+Clean the second data set
+```{r}
+snp = 
+  read_csv("./fivethirtyeight_datasets/snp.csv", na = c ("NA", ".", ""), show_col_types = FALSE ) |>
+    janitor:: clean_names() |>
+   separate(date, into = c ("year", "month", "day"), sep = "/") |>
+  mutate (month = month.name[as.integer(month)]) |>
+  mutate (year = 2000 + as.integer(year))|>
+   mutate (month = str_to_lower(month)) |>
+  select (!day) |>
+  relocate(year, month)
+```
+Tidy the unemployment data
+```{r}
+unemployment = 
+  read_csv("./fivethirtyeight_datasets/unemployment.csv", na = c ("NA", ".", ""), show_col_types = FALSE ) |>
+    janitor:: clean_names() |>
+  pivot_longer( cols = jan: dec,
+                names_to = "month",
+                values_to = "unemeployed" ) |>
+  mutate (
+    month = month.name[match(str_to_sentence(month),month.abb)]) |>
+mutate (month = str_to_lower(month))
+```
+
+Join the data set 
+Join the datasets by merging snp into pols, and merging unemployment into the result.
+
+Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables
+
+
+```{r}
+combine_data =
+  left_join(pols_month, snp) |>
+  left_join(unemployment) |>
+  na.omit()
+```
+The data contained `r combine_data |> nrow()` rows and `r combine_data |> ncol()`columns showing the data from year 2002 to year 2012. 
+
+## Question 2
+Importing MrTrashwheel data
+Which variable to merge:
+Stack them, identify the data belong to 
+```{r}
+mrtrash_df = 
+  read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = 1, range = "A2:N653")|>
+   janitor::clean_names() |>
+  # omit rows that do not include dumpster-specific data 
+# round the number of the sports balls 
+mutate(
+  sports_balls = as.integer(sports_balls, length = 0),
+  year = as.integer(year),
+  day = day(date),
+  wheel = "mr") |>
+  select (-date) |>
+  relocate (wheel, .after = dumpster) |>
+  relocate (year,month, day, .after = wheel) |>
+  relocate (sports_balls, .after = last_col())
+```
+
+Import and cleaning the Professor Trash Wheel
+```{r}
+prof_df = 
+  read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = 2, range = "A2:N653")|>
+  # use the reasonable name
+  janitor::clean_names() |>
+  select (-x14) |>
+  drop_na()|>
+  mutate (
+    day = day(date),
+    wheel = "prof"
+  )|>
+  select (-date) |>
+  relocate (wheel, .after = dumpster) |>
+  relocate (year, month, day, .after = wheel)
+  
+```
+
+Cleaning the Gwynda sheet
+```{r}
+gwynnda_df = 
+  read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = 4, range = "A2:N653")|>
+  # use the reasonable name
+  janitor::clean_names() |>
+  select (- x13, - x14) |>
+  drop_na()|>
+  mutate (
+    day = day(date),
+    wheel = "gwynnda"
+  )|>
+  select (-date) |>
+  relocate (wheel, .after = dumpster) |>
+  relocate (year, month, day, .after = wheel)
+  
+```
+Joining the data set
+
+```{r}
+joined_trash = 
+  full_join (mrtrash_df, prof_df, by = NULL) |>
+  full_join (gwynnda_df, by = NULL)
+```
+
+* Descriptions of the data*
+The Mr Trash Wheel, Professor Trash Wheel and Gwynnda trash wheel contain the data of the types and quantity of trash collwected by different water wheel vessel. 
+The Mr Trash data has `r mrtrash_df |> nrow()` rows and `r mrtrash_df |> ncol()` columns. 
+It showed that this vessel collected from `r mrtrash_df |> nrow()` dumpsters. 
+The total time that the trash was collected for 10 years from `r range(mrtrash_df$year)`. Total trash collected was `r sum(mrtrash_df$weight_tons)`.
+The Professor Trash wheel has `r prof_df |> nrow()` rows and `r prof_df |> ncol()` columns. The data was collected from `r range(prof_df$year)`. Total weigh of collected trash was `r sum(prof_df $ weight_tons)`
+The Gwynnda data has `r gwynnda_df|> nrow()` rows and `r gwynnda_df|> ncol()` columns.
+The joined data set has `r joined_trash |> nrow()` rows and `r joined_trash |> ncol()` columns.Total trash collected was `r sum(gwynnda_df$weight_tons)`.
+Total number of cigarette butts collected by Gwynnda in June 2022 is In June 2022, Gwynnda Trash Wheel collected `r sum(gwynnda_df[["cigarette_butts"]][gwynnda_df[["month"]] == "June" & gwynnda_df[["year"]] == 2022], na.rm = TRUE)` cigarette butts.
+
+## Question 3
+Importing the zipcode data sets
+
+Same zipcode, different counties.
+Merge by zipcode. drop the rows that do not have matching counties. left join
+inner_join: found something 
+anti_join
+
+```{r}
+zipcode_df = 
+  read_csv("./zillow_data/Zip Codes.csv", na = c("NA", ".", "")) |> 
+  janitor::clean_names() |> 
+ mutate(
+    file_date = mdy(file_date),
+    file_date_year = year(file_date),
+    file_date_month = month(file_date),
+    file_date_day = day(file_date)
+  ) |> 
+  select(-file_date) |> 
+  relocate(county, zip_code)
+```
+Importing and tidy the second data set
+```{r}
+zipzori_df =
+  read_csv("./zillow_data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv", na = c("NA", ".", "")) |> 
+  janitor::clean_names() |> 
+  pivot_longer(
+    cols = 10: 125,
+    names_to = "date",
+    values_to =  "price",
+    names_prefix = "x"
+  ) |>
+    separate(
+      date, sep = "_",
+      into = c ("year", "month", "day")
+   )|>
+  mutate (
+    year = as.integer(year),
+    month = as.integer(month)
+    ) |>
+  select(-state_name, -region_type) |>
+  rename(
+    zip_code = region_name,
+    county = county_name)|>
+  mutate(
+    county = str_remove(county, " County$")
+  ) |>
+  relocate(county, zip_code, year, month, day)
+  
+```
+Joining the two data set
+```{r}
+joined_zillow = 
+  full_join(
+    zipcode_df,zipzori_df, by = c("county", "zip_code")
+    ) |> 
+  relocate(price, .after = last_col()) |> 
+  arrange(year, month, day)
+```
+
+
