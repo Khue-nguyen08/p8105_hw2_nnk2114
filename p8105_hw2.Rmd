@@ -69,8 +69,7 @@ The data contained `r combine_data |> nrow()` rows and `r combine_data |> ncol()
 
 ## Question 2
 Importing MrTrashwheel data
-Which variable to merge:
-Stack them, identify the data belong to 
+
 ```{r}
 mrtrash_df = 
   read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = 1, range = "A2:N653")|>
@@ -131,14 +130,17 @@ joined_trash =
   full_join (gwynnda_df, by = NULL)
 ```
 
-* Descriptions of the data*
-The Mr Trash Wheel, Professor Trash Wheel and Gwynnda trash wheel contain the data of the types and quantity of trash collwected by different water wheel vessel. 
+*Descriptions of the data*
+
+* The Mr Trash Wheel, Professor Trash Wheel and Gwynnda trash wheel contain the data of the types and quantity of trash collwected by different water wheel vessel. 
 The Mr Trash data has `r mrtrash_df |> nrow()` rows and `r mrtrash_df |> ncol()` columns. 
 It showed that this vessel collected from `r mrtrash_df |> nrow()` dumpsters. 
 The total time that the trash was collected for 10 years from `r range(mrtrash_df$year)`. Total trash collected was `r sum(mrtrash_df$weight_tons)`.
-The Professor Trash wheel has `r prof_df |> nrow()` rows and `r prof_df |> ncol()` columns. The data was collected from `r range(prof_df$year)`. Total weigh of collected trash was `r sum(prof_df $ weight_tons)`
-The Gwynnda data has `r gwynnda_df|> nrow()` rows and `r gwynnda_df|> ncol()` columns.
-The joined data set has `r joined_trash |> nrow()` rows and `r joined_trash |> ncol()` columns.Total trash collected was `r sum(gwynnda_df$weight_tons)`.
+
+* The Professor Trash wheel has `r prof_df |> nrow()` rows and `r prof_df |> ncol()` columns. The data was collected from `r range(prof_df$year)`. Total weigh of collected trash was `r sum(prof_df $ weight_tons)`.
+
+* The Gwynnda data has `r gwynnda_df|> nrow()` rows and `r gwynnda_df|> ncol()` columns.
+The joined data set has `r joined_trash |> nrow()` rows and `r joined_trash |> ncol()` columns. Total trash collected was `r sum(gwynnda_df$weight_tons)`.
 Total number of cigarette butts collected by Gwynnda in June 2022 is In June 2022, Gwynnda Trash Wheel collected `r sum(gwynnda_df[["cigarette_butts"]][gwynnda_df[["month"]] == "June" & gwynnda_df[["year"]] == 2022], na.rm = TRUE)` cigarette butts.
 
 ## Question 3
