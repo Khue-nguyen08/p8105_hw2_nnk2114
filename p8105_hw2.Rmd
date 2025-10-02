@@ -149,7 +149,7 @@ The total time that the trash was collected for 10 years from `r range(mrtrash_d
 
 * The Gwynnda data has `r gwynnda_df|> nrow()` rows and `r gwynnda_df|> ncol()` columns.
 The joined data set has `r joined_trash |> nrow()` rows and `r joined_trash |> ncol()` columns. Total trash collected was `r sum(gwynnda_df$weight_tons)`.
-Total number of cigarette butts collected by Gwynnda in June 2022 is In June 2022, Gwynnda Trash Wheel collected `r gwynnda_df |>filter(year == 2022, month == "June") |>summarise(total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE))|>pull(total_cigarette_butts)` cigarette butts.
+Total number of cigarette butts collected by Gwynnda in June 2022 is In June 2022, Gwynnda Trash Wheel collected `r format(gwynnda_df |>filter(year == 2022, month == "June") |>summarise(total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE))|>pull(total_cigarette_butts), scientific = FALSE)` cigarette butts.
 
 
 ```{r}
@@ -167,12 +167,6 @@ Importing the zipcode data sets
 zipcode_df = 
   read_csv("./zillow_data/Zip Codes.csv", na = c("NA", ".", "")) |> 
   janitor::clean_names() |> 
- mutate(
-    file_date = mdy(file_date),
-    file_year = year(file_date),
-    file_month = month(file_date),
-    file_day = day(file_date)
-  ) |> 
   select(-file_date, -state_fips, -county_fips) |> 
   relocate(county, zip_code)
 ```
@@ -210,7 +204,7 @@ Joining the two data set
 
 ```{r}
 joined_zillow = 
-  full_join(
+  left_join(
     zipcode_df,zipzori_df, by = c("county", "zip_code")
     ) |> 
   relocate(price, .after = last_col()) |> 
@@ -224,7 +218,7 @@ missing_zip = anti_join(zipcode_df, zipzori_df)
 
 *Data description*
 
-* There are otal `r joined_zillow|> ncol()` observations. 
+* There are total `r joined_zillow|> nrow()` observations and `r joined_zillow |> ncol()` variables.
 
 * In the joined dataset, there are `r n_distinct(joined_zillow$zip_code)` unique zipcodes and `r n_distinct (joined_zillow$neighborhood)` unique neighborhoods.
 
@@ -238,7 +232,7 @@ Checking the drop price
 drop_price_df =
   joined_zillow|>
   select( county, neighborhood, zip_code, year, month, price)|>
-  filter(year == c(2020, 2021), month == 1) |> 
+  filter(year %in% c(2020, 2021), month == 1) |> 
   pivot_wider(
     names_from = year,
     values_from = price, 
@@ -253,14 +247,31 @@ drop_price_df =
 
 ```
 
-Make a table
+ 10 zip codes that had the significant rental price dropped in Jan 2021 compared to Jan 2020
 ```{r}
-drop_price_df |>
+  drop_price_df |>
  slice_head(n = 10) |> 
   kable(
-    col.names = c("ZIP Code", "County", "Neighborhood", "Price 2020", "Price 2021", "Price Drop"),
-    digits = 0)
+    col.names = c("Zip Code", "County", "Neighborhood", "Price 2020", "Price 2021", "Price Drop"),
+    digits = 0,
+    caption = opts_current$get("tab.cap"))
+```
+
+Calculate the percentage drop compared to the price in Jan 2020
+
+```{r}
+percent_drop =
+  drop_price_df |> 
+  drop_na() |>
+  mutate(
+    percentage = (price_drop/ price_2020)*100
+  )
 ```
 
 *Comment*
+ The neighborhood that had the most price drop in January 2021 compared to January 2020 were `r format( drop_price_df|> pull(zip_code[1]), scientific = FALSE)`. 
+ Other neighborhood included `r drop_price_df |> drop_na () |> pull(unique(neighborhood))`. These were the most crowded area in NYC before covid. The cost of the rent were also very high. After covid, the cost were significantly lowered, 
+ The highest drop was `r drop_price_df$price_drop[1]|> as.integer()` dollars with `r percent_drop$percentage[1]|> as.integer()` percent compared to Jan 2020 rent price. 
+ Overall for the top ten rental price drop, the cost were lower by a range from  `r percent_drop$percentage |> min()|> as.integer()` percent to `r percent_drop$percentage |> max()|> as.integer()` percent.
+ 
 
