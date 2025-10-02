@@ -269,6 +269,7 @@ percent_drop =
 ```
 
 *Comment*
+
  The neighborhood that had the most price drop in January 2021 compared to January 2020 were `r format( drop_price_df|> pull(zip_code[1]), scientific = FALSE)`. 
  Other neighborhood included `r drop_price_df |> drop_na () |> pull(unique(neighborhood))`. These were the most crowded area in NYC before covid. The cost of the rent were also very high. After covid, the cost were significantly lowered, 
  The highest drop was `r drop_price_df$price_drop[1]|> as.integer()` dollars with `r percent_drop$percentage[1]|> as.integer()` percent compared to Jan 2020 rent price. 
